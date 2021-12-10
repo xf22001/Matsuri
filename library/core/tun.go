@@ -51,14 +51,6 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance,
 	router string, gVisor bool, hijackDns bool, sniffing bool,
 	overrideDestination bool, fakedns bool, debug bool,
 	dumpUid bool, trafficStats bool, pcap bool) (*Tun2ray, error) {
-	/*	if fd < 0 {
-			return nil, errors.New("must provide a valid TUN file descriptor")
-		}
-		// Make a copy of `fd` so that os.File's finalizer doesn't close `fd`.
-		newFd, err := unix.Dup(int(fd))
-		if err != nil {
-			return nil, err
-		}*/
 
 	if debug {
 		logrus.SetLevel(logrus.DebugLevel)
@@ -96,8 +88,10 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance,
 				return nil, errors.WithMessage(err, "unable to create pcap file")
 			}
 		}
-
-		t.dev, err = gvisor.New(fd, mtu, t, gvisor.DefaultNIC, pcap, pcapFile, math.MaxUint32, ipv6Mode)
+		// Create gvisor only when requierd
+		if fd > 0 {
+			t.dev, err = gvisor.New(fd, mtu, t, gvisor.DefaultNIC, pcap, pcapFile, math.MaxUint32, ipv6Mode)
+		}
 	} else {
 		err = errors.New("Not supported")
 	}

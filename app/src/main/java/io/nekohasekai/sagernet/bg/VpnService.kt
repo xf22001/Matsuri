@@ -77,7 +77,7 @@ class VpnService : BaseVpnService(),
         }
     }
 
-    lateinit var conn: ParcelFileDescriptor
+    var conn: ParcelFileDescriptor? = null
     private lateinit var tun: Tun2ray
     fun getTun(): Tun2ray? {
         if (!::tun.isInitialized) return null
@@ -109,7 +109,7 @@ class VpnService : BaseVpnService(),
     @Suppress("EXPERIMENTAL_API_USAGE")
     override fun killProcesses() {
         getTun()?.close()
-        if (::conn.isInitialized) conn.close()
+        conn?.close()
         super.killProcesses()
         persistAppStats()
         active = false
@@ -151,51 +151,55 @@ class VpnService : BaseVpnService(),
         instance = this
 
         val profile = data.proxy!!.profile
-        val builder = Builder().setConfigureIntent(SagerNet.configureIntent(this))
-            .setSession(profile.displayName())
-            .setMtu(VPN_MTU)
+        // Do not set VPN when using "proxy only" mode
+        var builder: Builder? = null
+        if (DataStore.serviceMode == Key.MODE_VPN) {
+            builder = Builder().setConfigureIntent(SagerNet.configureIntent(this))
+                .setSession(profile.displayName())
+                .setMtu(VPN_MTU)
+        }
         val useFakeDns = DataStore.enableFakeDns
         val ipv6Mode = DataStore.ipv6Mode
 
-        builder.addAddress(PRIVATE_VLAN4_CLIENT, 30)
+        builder?.addAddress(PRIVATE_VLAN4_CLIENT, 30)
         if (useFakeDns) {
-            builder.addAddress(FAKEDNS_VLAN4_CLIENT, 15)
+            builder?.addAddress(FAKEDNS_VLAN4_CLIENT, 15)
         }
 
         if (ipv6Mode != IPv6Mode.DISABLE) {
-            builder.addAddress(PRIVATE_VLAN6_CLIENT, 126)
+            builder?.addAddress(PRIVATE_VLAN6_CLIENT, 126)
 
             if (useFakeDns) {
-                builder.addAddress(FAKEDNS_VLAN6_CLIENT, 18)
+                builder?.addAddress(FAKEDNS_VLAN6_CLIENT, 18)
             }
         }
 
         if (DataStore.bypassLan && !DataStore.bypassLanInCoreOnly) {
             resources.getStringArray(R.array.bypass_private_route).forEach {
                 val subnet = Subnet.fromString(it)!!
-                builder.addRoute(subnet.address.hostAddress!!, subnet.prefixSize)
+                builder?.addRoute(subnet.address.hostAddress!!, subnet.prefixSize)
             }
-            builder.addRoute(PRIVATE_VLAN4_ROUTER, 32)
+            builder?.addRoute(PRIVATE_VLAN4_ROUTER, 32)
             // https://issuetracker.google.com/issues/149636790
             if (ipv6Mode != IPv6Mode.DISABLE) {
-                builder.addRoute("2000::", 3)
+                builder?.addRoute("2000::", 3)
             }
         } else {
-            builder.addRoute("0.0.0.0", 0)
+            builder?.addRoute("0.0.0.0", 0)
             if (ipv6Mode != IPv6Mode.DISABLE) {
-                builder.addRoute("::", 0)
+                builder?.addRoute("::", 0)
             }
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-            builder.setUnderlyingNetworks(underlyingNetworks)
+            builder?.setUnderlyingNetworks(underlyingNetworks)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) builder.setMetered(metered)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) builder?.setMetered(metered)
 
         val packageName = packageName
-        val proxyApps = DataStore.proxyApps
+        val proxyApps = DataStore.proxyApps // 分应用代理
+        // TODO 放开 bypass root 设置
         val needBypassRootUid = data.proxy!!.config.outboundTagsAll.values.any { it.ptBean != null }
-        val needIncludeSelf = data.proxy!!.config.index.any { it.chain.size > 1 }
         if (proxyApps || needBypassRootUid) {
             var bypass = DataStore.bypass
             val individual = mutableSetOf<String>()
@@ -213,6 +217,7 @@ class VpnService : BaseVpnService(),
             if (proxyApps) {
                 individual.addAll(DataStore.individual.split('\n').filter { it.isNotBlank() })
                 if (bypass && needBypassRootUid) {
+                    // Android 不让 bypass root，所以只能把不 bypass 的全部加 allow (bypass=false)
                     val individualNew = allApps.toMutableList()
                     individualNew.removeAll(individual)
                     individual.clear()
@@ -225,14 +230,16 @@ class VpnService : BaseVpnService(),
             }
 
             individual.apply {
-                if (bypass xor needIncludeSelf) add(packageName) else remove(packageName)
+                // 需要 bypass 自己
+                remove(packageName)
+                if (bypass) add(packageName)
             }.forEach {
                 try {
                     if (bypass) {
-                        builder.addDisallowedApplication(it)
+                        builder?.addDisallowedApplication(it)
                         Logs.d("Add bypass: $it")
                     } else {
-                        builder.addAllowedApplication(it)
+                        builder?.addAllowedApplication(it)
                         Logs.d("Add allow: $it")
                     }
                 } catch (ex: PackageManager.NameNotFoundException) {
@@ -240,22 +247,26 @@ class VpnService : BaseVpnService(),
                 }
             }
         } else {
-            builder.addDisallowedApplication(packageName)
+            builder?.addDisallowedApplication(packageName)
         }
 
-        builder.addDnsServer(PRIVATE_VLAN4_ROUTER)
+        builder?.addDnsServer(PRIVATE_VLAN4_ROUTER)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && DataStore.appendHttpProxy && DataStore.requireHttp) {
-            builder.setHttpProxy(ProxyInfo.buildDirectProxy(LOCALHOST, DataStore.httpPort))
+            builder?.setHttpProxy(ProxyInfo.buildDirectProxy(LOCALHOST, DataStore.httpPort))
         }
 
         metered = DataStore.meteredNetwork
         active = true   // possible race condition here?
-        if (Build.VERSION.SDK_INT >= 29) builder.setMetered(metered)
-        conn = builder.establish() ?: throw NullConnectionException()
+        if (Build.VERSION.SDK_INT >= 29) builder?.setMetered(metered)
+
+        conn = builder?.establish()
+        if (builder != null && conn == null) {
+            throw NullConnectionException()
+        }
 
         tun = Libcore.newTun2ray(
-            conn.fd,
+            conn?.fd ?: -1,
             VPN_MTU,
             data.proxy!!.v2rayPoint,
             PRIVATE_VLAN4_ROUTER,
