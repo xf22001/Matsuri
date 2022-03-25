@@ -1,0 +1,5 @@
+/v2ray
+*.pem
+*.dat
+*.log
+*.json
