@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	_ "unsafe"
 
@@ -12,7 +13,13 @@ import (
 //go:linkname build github.com/v2fly/v2ray-core/v5.build
 var build string
 
+var version_v2ray string = "N/A"
+var version_standalone string = "N/A"
+
 func main() {
+	fmt.Println("V2Ray:", version_v2ray, "Version:", version_standalone)
+	fmt.Println()
+
 	build = "Matsuridayo/Qv2ray"
 	commands.CmdRun.Run(commands.CmdRun, os.Args[1:])
 }
