@@ -31,6 +31,7 @@ import io.nekohasekai.sagernet.fmt.V2rayBuildResult.IndexEntity
 import io.nekohasekai.sagernet.fmt.gson.gson
 import io.nekohasekai.sagernet.fmt.http.HttpBean
 import io.nekohasekai.sagernet.fmt.hysteria.HysteriaBean
+import io.nekohasekai.sagernet.fmt.hysteria.isMultiPort
 import io.nekohasekai.sagernet.fmt.internal.ChainBean
 import io.nekohasekai.sagernet.fmt.shadowsocks.ShadowsocksBean
 import io.nekohasekai.sagernet.fmt.shadowsocksr.ShadowsocksRBean
@@ -45,6 +46,7 @@ import io.nekohasekai.sagernet.fmt.wireguard.WireGuardBean
 import io.nekohasekai.sagernet.ktx.isIpAddress
 import io.nekohasekai.sagernet.ktx.mkPort
 import io.nekohasekai.sagernet.utils.PackageCache
+import moe.matsuri.nya.DNS.applyDNSNetworkSettings
 import moe.matsuri.nya.neko.Plugins
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -157,6 +159,7 @@ fun buildV2RayConfig(
                 DnsObject.StringOrServerObject().apply {
                     valueY = DnsObject.ServerObject().apply {
                         address = it
+                        applyDNSNetworkSettings(false)
                     }
                 }
             })
@@ -1030,9 +1033,14 @@ fun buildV2RayConfig(
 
         // Bypass Lookup for the first profile
         bypassDNSBeans.forEach {
-            if (!it.serverAddress.isIpAddress()) {
-                directLookupDomain.add("full:${it.serverAddress}")
-                if (DataStore.enhanceDomain) tryDomains.add(it.serverAddress)
+            var serverAddr = it.serverAddress
+            if (it is HysteriaBean && it.isMultiPort()) {
+                serverAddr = it.serverAddress.substringBeforeLast(":")
+            }
+
+            if (!serverAddr.isIpAddress()) {
+                directLookupDomain.add("full:${serverAddr}")
+                if (DataStore.enhanceDomain) tryDomains.add(serverAddr)
             }
         }
 
@@ -1064,6 +1072,7 @@ fun buildV2RayConfig(
                         domains = directLookupDomain.toList()
                         skipFallback = true
                         uidList = uidListDNSDirect.toHashSet().toList()
+                        applyDNSNetworkSettings(true)
                     }
                 }
             })
