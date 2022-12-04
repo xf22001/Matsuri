@@ -168,7 +168,8 @@ fun buildV2RayConfig(
                 DnsObject.StringOrServerObject().apply {
                     valueY = DnsObject.ServerObject().apply {
                         address = "https://1.0.0.1/dns-query"
-                        domains = listOf("geosite:gfw", "geosite:greatfire", "geosite:geolocation-!cn")
+                        // domains = listOf("geosite:gfw", "geosite:greatfire", "geosite:geolocation-!cn")
+                        domains = listOf("geosite:gfw", "geosite:greatfire")
                         skipFallback = true
                     }
                 }
