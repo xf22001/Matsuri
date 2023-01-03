@@ -240,6 +240,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverHeaders by profileCacheStore.string(Key.SERVER_HEADERS)
     var serverAllowInsecure by profileCacheStore.boolean(Key.SERVER_ALLOW_INSECURE)
     var serverPacketEncoding by profileCacheStore.stringToInt(Key.SERVER_PACKET_ENCODING)
+    var utlsFingerprint by profileCacheStore.string("utlsFingerprint")
 
     var serverVMessExperimentalAuthenticatedLength by profileCacheStore.boolean(Key.SERVER_VMESS_EXPERIMENTAL_AUTHENTICATED_LENGTH)
     var serverVMessExperimentalNoTerminationSignal by profileCacheStore.boolean(Key.SERVER_VMESS_EXPERIMENTAL_NO_TERMINATION_SIGNAL)
@@ -258,6 +259,11 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverLocalAddress by profileCacheStore.string(Key.SERVER_LOCAL_ADDRESS)
     var serverInsecureConcurrency by profileCacheStore.stringToInt(Key.SERVER_INSECURE_CONCURRENCY)
     var serverReducedIvHeadEntropy by profileCacheStore.boolean(Key.SERVER_REDUCED_IV_HEAD_ENTROPY)
+
+    var serverUDPRelayMode by profileCacheStore.string(Key.SERVER_UDP_RELAY_MODE)
+    var serverCongestionController by profileCacheStore.string(Key.SERVER_CONGESTION_CONTROLLER)
+    var serverDisableSNI by profileCacheStore.boolean(Key.SERVER_DISABLE_SNI)
+    var serverReduceRTT by profileCacheStore.boolean(Key.SERVER_REDUCE_RTT)
 
     var routeName by profileCacheStore.string(Key.ROUTE_NAME)
     var routeDomain by profileCacheStore.string(Key.ROUTE_DOMAIN)
