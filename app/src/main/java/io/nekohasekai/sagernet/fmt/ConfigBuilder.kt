@@ -170,6 +170,7 @@ fun buildV2RayConfig(
                         address = "https://1.0.0.1/dns-query"
                         // domains = listOf("geosite:gfw", "geosite:greatfire", "geosite:geolocation-!cn")
                         domains = listOf("geosite:gfw", "geosite:greatfire")
+                        fallbackStrategy = "disabled"
                         applyDNSNetworkSettings(false)
                     }
                 }
