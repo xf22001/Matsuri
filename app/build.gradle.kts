@@ -26,6 +26,9 @@ android {
     namespace = "io.nekohasekai.sagernet"
 }
 
+val ossImplementation by configurations
+val playImplementation by configurations
+
 dependencies {
 
     implementation(fileTree("libs"))
@@ -65,9 +68,6 @@ dependencies {
         exclude(group = "androidx.recyclerview")
         exclude(group = "androidx.appcompat")
     }
-    implementation("org.smali:dexlib2:2.5.2") {
-        exclude(group = "com.google.guava", module = "guava")
-    }
 
     implementation("androidx.room:room-runtime:2.4.2")
     kapt("androidx.room:room-compiler:2.4.2")
@@ -76,4 +76,7 @@ dependencies {
     kapt("com.github.MatrixDev.Roomigrant:RoomigrantCompiler:0.3.4")
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")
+
+    ossImplementation("com.google.android.gms:play-services-ads:22.1.0")
+    playImplementation("com.google.android.gms:play-services-ads:22.1.0")
 }
