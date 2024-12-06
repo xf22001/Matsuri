@@ -166,18 +166,6 @@ fun buildV2RayConfig(
                 }
             })
 
-            servers.add(
-                DnsObject.StringOrServerObject().apply {
-                    valueY = DnsObject.ServerObject().apply {
-                        address = "https://1.0.0.1/dns-query"
-                        // domains = listOf("geosite:gfw", "geosite:greatfire", "geosite:geolocation-!cn")
-                        domains = listOf("geosite:gfw", "geosite:greatfire")
-                        fallbackStrategy = "disabled"
-                        applyDNSNetworkSettings(false)
-                    }
-                }
-            )
-
             when (ipv6Mode) {
                 IPv6Mode.DISABLE -> {
                     queryStrategy = "UseIPv4"
